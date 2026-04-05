@@ -1,6 +1,6 @@
 <div align="center">
 
-# myself.skill
+# myself.skill(永生skill)
 
 > *"拒绝秽土转生，创造你的影分身 —— 全世界的数字生产者，联合起来！"*
 
