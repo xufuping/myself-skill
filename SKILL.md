@@ -7,61 +7,67 @@ user-invocable: true
 allowed-tools: Read, Write, Edit, Bash
 ---
 
-> **Language / 语言**: 根据用户第一条消息的语言，全程使用同一语言回复。
+> **Language Routing / 语言路由**:
+> Detect the language of the user's first message and lock the session language accordingly.
+> - **中文** → Use `${SKILL_DIR}/prompts/` for all prompt templates. All UI text in Chinese.
+> - **English** → Use `${SKILL_DIR}/prompts_en/` for all prompt templates. All UI text in English.
+>
+> Below, `${PROMPTS}` refers to the language-appropriate prompts directory.
+> All user-facing text blocks are provided in both languages — use the one matching the session language.
 
-# myself.skill 创建器
+# myself.skill Creator / myself.skill 创建器
 
-## 触发条件
+## Trigger Conditions / 触发条件
 
-当用户说以下任意内容时启动：
+Activate when the user says any of the following:
 - `/create-myself`
-- "帮我创建一个关于我的 skill"
-- "我想蒸馏自己"
-- "新建影分身"
-- "创建我的影分身"
+- "帮我创建一个关于我的 skill" / "Help me create a skill about myself"
+- "我想蒸馏自己" / "I want to distill myself"
+- "新建影分身" / "创建我的影分身" / "Create my shadow clone" / "Build my digital twin"
 
-当用户对已有 Skill 说以下内容时，进入进化模式：
-- "我有新数据" / "追加"
-- "不对" / "我不会这样" / "我其实是"
+Enter evolution mode when the user says:
+- "我有新数据" / "追加" / "I have new data" / "append"
+- "不对" / "我不会这样" / "我其实是" / "That's wrong" / "I wouldn't do that" / "Actually, I'm more like"
 - `/update-myself {slug}`
 
-管理命令：
-- `/list-myselves` — 列出所有已生成的个人 Skill
-- `/myself-rollback {slug} {version}` — 回滚到历史版本
-- `/delete-myself {slug}` — 删除
-- `/{slug}` — 影分身模式
-- `/{slug}-profile` — 档案模式
-- `/{slug}-value` — 价值输出模式
+Management commands:
+- `/list-myselves` — 列出所有已生成的个人 Skill / List all personal Skills
+- `/myself-rollback {slug} {version}` — 回滚到历史版本 / Roll back to a previous version
+- `/delete-myself {slug}` — 删除 / Delete
+- `/{slug}` — 影分身模式 / Shadow Clone mode
+- `/{slug}-profile` — 档案模式 / Profile mode
+- `/{slug}-value` — 价值输出模式 / Value Output mode
 
 ---
 
-## 工具使用规则
+## Tool Usage Rules / 工具使用规则
 
-本 Skill 运行在 Claude Code / Cursor 环境，使用以下工具：
+This Skill runs in Claude Code / Cursor and uses the following tools:
 
-| 任务 | 使用工具 |
-|------|---------|
-| 读取 PDF / 图片 | `Read` 工具 |
-| 读取 MD / TXT 文件 | `Read` 工具 |
-| 解析微信聊天记录导出 | `Bash` → `python3 ${SKILL_DIR}/tools/wechat_parser.py` |
-| 解析 QQ 聊天记录导出 | `Bash` → `python3 ${SKILL_DIR}/tools/qq_parser.py` |
-| 解析社交媒体内容 | `Bash` → `python3 ${SKILL_DIR}/tools/social_parser.py` |
-| 分析 GitHub 仓库 | `Bash` → `python3 ${SKILL_DIR}/tools/github_analyzer.py` |
-| 解析笔记/文档 | `Bash` → `python3 ${SKILL_DIR}/tools/note_parser.py` |
-| 写入/更新 Skill 文件 | `Write` / `Edit` 工具 |
-| 版本管理 | `Bash` → `python3 ${SKILL_DIR}/tools/version_manager.py` |
-| 列出已有 Skill | `Bash` → `python3 ${SKILL_DIR}/tools/skill_writer.py --action list` |
+| Task | Tool |
+|------|------|
+| Read PDF / images | `Read` tool |
+| Read MD / TXT files | `Read` tool |
+| Parse WeChat chat exports | `Bash` → `python3 ${SKILL_DIR}/tools/wechat_parser.py` |
+| Parse QQ chat exports | `Bash` → `python3 ${SKILL_DIR}/tools/qq_parser.py` |
+| Parse social media content | `Bash` → `python3 ${SKILL_DIR}/tools/social_parser.py` |
+| Analyze GitHub repos | `Bash` → `python3 ${SKILL_DIR}/tools/github_analyzer.py` |
+| Parse notes/documents | `Bash` → `python3 ${SKILL_DIR}/tools/note_parser.py` |
+| Write/update Skill files | `Write` / `Edit` tools |
+| Version management | `Bash` → `python3 ${SKILL_DIR}/tools/version_manager.py` |
+| List existing Skills | `Bash` → `python3 ${SKILL_DIR}/tools/skill_writer.py --action list` |
 
-**基础目录**：Skill 文件写入 `./myselves/{slug}/`（相对于本项目目录）。
+**Base directory**: Skill files are written to `./myselves/{slug}/` (relative to the project root).
 
 ---
 
-## 主流程：创建新的个人 Skill
+## Main Flow: Creating a New Personal Skill / 主流程：创建新的个人 Skill
 
-### Step 0：模式选择
+### Step 0: Mode Selection / 模式选择
 
-创建开始前，向用户展示模式选择：
+Before starting, present the mode options in the session language:
 
+**[中文版]**
 ```
 你想用哪种方式创建影分身？
 
@@ -80,18 +86,38 @@ allowed-tools: Read, Write, Edit, Bash
   不确定？选「快速」先体验，随时可以追加数据进化。
 ```
 
-- 用户选择后进入对应流程
-- 如果用户未选择直接开始描述自己，默认进入**快速模式**
-- 如果用户直接说 `/create-myself 小明，25岁前端，社恐INTJ` 这类一句话，也直接进入**快速模式**
+**[English]**
+```
+How would you like to create your Shadow Clone?
+
+  ⚡ [Quick] One sentence, done in 3 minutes
+         Just describe yourself and get a usable clone instantly
+         Cost: ~30-50K tokens (3-4 turns)
+
+  📋 [Standard] 5 questions + optional material import, 10 minutes
+         Answer basic questions, optionally import chat logs/notes
+         Cost: ~100-150K tokens (8-10 turns)
+
+  🔬 [Deep] Full material analysis + RAG knowledge base, 30+ minutes
+         For users with extensive materials who want high-fidelity recreation
+         Cost: ~300-800K tokens (15-20+ turns)
+
+  Not sure? Pick "Quick" to try it out — you can always add more data later.
+```
+
+- Proceed to the corresponding flow after selection
+- If the user skips selection and starts describing themselves, default to **Quick mode**
+- If the user includes a self-description in the trigger command, enter **Quick mode** directly
 
 ---
 
-### 快速模式流程
+### Quick Mode Flow / 快速模式流程
 
-适用于首次体验或希望快速生成的用户。目标：**3-4 轮对话完成**。
+Designed for first-time users or those who want fast results. Goal: **3-4 turns**.
 
-**第 1 轮：一句话采集**
+**Turn 1: One-Sentence Capture / 一句话采集**
 
+**[中文版]**
 ```
 用一句话描述自己——花名、年龄、性别、职业、性格，想到什么写什么。
 
@@ -99,25 +125,31 @@ allowed-tools: Read, Write, Edit, Bash
 例：小鱼，95后女，北京自由插画师，INFP双鱼，话多但社恐，画风治愈
 ```
 
-从这一句话中解析所有能提取的信息（花名、身份、MBTI、星座、性格标签、价值主张）。缺失的字段留空即可。
-
-**第 2 轮：确认 + 补充**
-
-展示解析结果摘要（同标准模式的确认格式），询问：
+**[English]**
 ```
-解析结果如上，确认生成？
-想补充什么直接说，不补充就直接生成。
+Describe yourself in one sentence — alias, age, gender, occupation, personality, whatever comes to mind.
+
+e.g.: Ding, 27M, full-stack engineer in Shenzhen, INTJ introvert, good at React+TS enterprise apps
+e.g.: Luna, late 20s F, freelance illustrator in NYC, INFP Pisces, talkative but shy, cozy art style
 ```
 
-**第 3 轮：生成并预览**
+Parse everything extractable (alias, identity, MBTI, zodiac, personality tags, value proposition). Leave missing fields blank.
 
-跳过素材导入，直接进入 Step 3 四轨分析（仅基于手动信息），展示四 Part 摘要。
+**Turn 2: Confirm + Supplement / 确认 + 补充**
 
-**第 4 轮：确认写入**
+Show parsed results summary, then ask for confirmation.
 
-用户确认后执行 Step 5 写入文件。
+**Turn 3: Generate and Preview / 生成并预览**
 
-完成后告知：
+Skip material import. Proceed directly to Step 3 four-track analysis (based on manual info only). Show the four-Part summary.
+
+**Turn 4: Confirm and Write / 确认写入**
+
+Write files after user confirmation.
+
+Upon completion:
+
+**[中文版]**
 ```
 ✅ 快速版影分身已创建！
 
@@ -127,66 +159,73 @@ allowed-tools: Read, Write, Edit, Bash
   · 每次追加都会让影分身更像你
 ```
 
-快速模式完成后，**不主动引导 RAG 配置**（Step 6 跳过）。
+**[English]**
+```
+✅ Quick Shadow Clone created!
+
+Doesn't feel like you yet? You can always:
+  · Say "I have new stuff" to add chat logs, notes, or other materials
+  · Say "That's not right, I'm actually..." to correct inaccuracies
+  · Each update makes your clone more like you
+```
+
+Quick mode **does not prompt for RAG configuration** (Step 6 is skipped).
 
 ---
 
-### Step 1：基础信息录入（标准/深度模式）
+### Step 1: Basic Info Collection / 基础信息录入（Standard/Deep Mode / 标准/深度模式）
 
-参考 `${SKILL_DIR}/prompts/intake.md` 的问题序列：
+Follow the question sequence from `${PROMPTS}/intake.md`:
 
-1. **花名/代号**（必填）
-2. **基础身份**（一句话：年龄、性别、所在地、职业）
-3. **性格标签**（MBTI、星座、生肖、性格特点）
-4. **自我认知**（你觉得自己是什么样的人）
-5. **价值主张**（你最擅长什么，你能提供什么价值）
+1. **Alias/handle / 花名/代号** (required / 必填)
+2. **Basic identity / 基础身份** (one sentence: age, gender, location, occupation)
+3. **Personality tags / 性格标签** (MBTI, zodiac, Chinese zodiac, personality traits)
+4. **Self-perception / 自我认知** (how do you see yourself)
+5. **Value proposition / 价值主张** (what are you best at, what value can you offer)
 
-除花名外均可跳过。收集完后汇总确认再进入下一步。
+All fields except alias are optional. Summarize and confirm before moving on.
 
-### Step 2：原材料导入
+### Step 2: Raw Material Import / 原材料导入
 
-询问用户提供原材料，展示方式供选择：
+Ask the user to provide materials. Present options in the session language:
 
+**[中文版]**
 ```
 原材料怎么提供？越丰富，影分身越像你。
 
-  [A] 聊天记录
-      微信/QQ/Telegram 导出，分析你的说话风格
-      推荐工具：WeChatMsg / 留痕 / PyWxDump
-
-  [B] 个人知识库
-      Obsidian/Notion 笔记、技术文档、学习笔记
-      拖进来或给文件夹路径
-
-  [C] 代码仓库
-      GitHub/GitLab 链接，分析你的技术栈和编码风格
-
-  [D] 社交媒体
-      微博/小红书/Twitter 截图或导出
-
-  [E] 简历/自我介绍
-      PDF / Markdown / 纯文本
-
-  [F] 性格测试结果
-      MBTI 报告、九型人格、Big Five 等
-
-  [G] 日记/随笔
-      私人想法、人生反思、备忘录
-
-  [H] 他人评价
-      直接粘贴别人对你的评价
-
-  [I] 直接口述
-      想到什么说什么，我来帮你整理
+  [A] 聊天记录 — 微信/QQ/Telegram 导出
+  [B] 个人知识库 — Obsidian/Notion 笔记
+  [C] 代码仓库 — GitHub/GitLab 链接
+  [D] 社交媒体 — 微博/小红书/Twitter 截图
+  [E] 简历/自我介绍 — PDF/Markdown/纯文本
+  [F] 性格测试结果 — MBTI/九型人格/Big Five
+  [G] 日记/随笔 — 私人想法、反思
+  [H] 他人评价 — 粘贴别人对你的评价
+  [I] 直接口述 — 想到什么说什么
 
 可以混用，也可以跳过。以后随时追加。
 ```
 
+**[English]**
+```
+How would you like to provide materials? The richer, the more accurate.
+
+  [A] Chat Logs — WeChat/QQ/Telegram exports
+  [B] Personal Knowledge Base — Obsidian/Notion notes
+  [C] Code Repositories — GitHub/GitLab links
+  [D] Social Media — Twitter/Reddit/Instagram screenshots
+  [E] Resume / Self-Introduction — PDF/Markdown/plain text
+  [F] Personality Test Results — MBTI/Enneagram/Big Five
+  [G] Journals / Essays — Personal thoughts, reflections
+  [H] Peer Reviews — Paste what others have said about you
+  [I] Free-Form Narration — Just say whatever comes to mind
+
+Mix and match, or skip entirely. You can always add more later.
+```
+
 ---
 
-#### 方式 A：聊天记录
-
-支持主流导出格式：
+#### Option A: Chat Logs / 聊天记录
 
 ```bash
 python3 ${SKILL_DIR}/tools/wechat_parser.py \
@@ -196,9 +235,7 @@ python3 ${SKILL_DIR}/tools/wechat_parser.py \
   --format auto
 ```
 
-支持：WeChatMsg 导出（txt/html/csv）、留痕导出（JSON）、PyWxDump 导出（SQLite）、手动粘贴纯文本。
-
-QQ 聊天记录：
+QQ chat logs:
 ```bash
 python3 ${SKILL_DIR}/tools/qq_parser.py \
   --file {path} \
@@ -206,11 +243,11 @@ python3 ${SKILL_DIR}/tools/qq_parser.py \
   --output /tmp/qq_out.txt
 ```
 
-解析后用 `Read` 读取输出文件。
+Read the output file with `Read` after parsing.
 
 ---
 
-#### 方式 B：个人知识库
+#### Option B: Personal Knowledge Base / 个人知识库
 
 ```bash
 python3 ${SKILL_DIR}/tools/note_parser.py \
@@ -219,13 +256,11 @@ python3 ${SKILL_DIR}/tools/note_parser.py \
   --summary
 ```
 
-支持：Obsidian vault（直接读 .md）、Notion 导出（Markdown）、语雀导出。
-
-如果文件较少（<20 篇），也可用 `Read` 工具直接逐个读取。
+For smaller collections (<20 files), use the `Read` tool to read them individually.
 
 ---
 
-#### 方式 C：代码仓库
+#### Option C: Code Repositories / 代码仓库
 
 ```bash
 python3 ${SKILL_DIR}/tools/github_analyzer.py \
@@ -233,15 +268,11 @@ python3 ${SKILL_DIR}/tools/github_analyzer.py \
   --output /tmp/code_out.txt
 ```
 
-提取：技术栈分布、代码风格、提交习惯、PR/Issue 风格。
-
-如果是本地仓库，也可以直接给路径。
-
 ---
 
-#### 方式 D：社交媒体
+#### Option D: Social Media / 社交媒体
 
-图片截图用 `Read` 工具直接读取（原生支持图片）。
+Use `Read` to directly read image screenshots (natively supported).
 
 ```bash
 python3 ${SKILL_DIR}/tools/social_parser.py \
@@ -251,95 +282,77 @@ python3 ${SKILL_DIR}/tools/social_parser.py \
 
 ---
 
-#### 方式 E-I：简历/测试结果/日记/他人评价/口述
+#### Options E–I: Resume / Test Results / Journals / Peer Reviews / Narration
 
-- **PDF / 图片**：`Read` 工具直接读取
-- **Markdown / TXT**：`Read` 工具直接读取
-- **口述内容**：用户粘贴的文字直接作为原材料
-- **他人评价**：用户粘贴或上传他人对自己的描述
+- **PDF / Images**: Read directly with the `Read` tool
+- **Markdown / TXT**: Read directly with the `Read` tool
+- **Narration**: User-pasted text is used as raw material directly
+- **Peer Reviews**: User-pasted or uploaded descriptions from others
 
 ---
 
-如果用户说"没有文件"或"跳过"，仅凭 Step 1 的手动信息生成 Skill。
+If the user says "no files" / "skip" / "没有文件" / "跳过", generate the Skill based solely on Step 1 info.
 
-### Step 3：四轨并行分析
+### Step 3: Four-Track Parallel Analysis / 四轨并行分析
 
-将所有原材料和用户填写的基础信息汇总，按四条线分析：
+Combine all raw materials and user-provided info, then analyze along four tracks:
 
-**Track A（Knowledge & Value）**：
-- 参考 `${SKILL_DIR}/prompts/knowledge_analyzer.md` 的提取维度
-- 提取：专业技能、知识体系、工作方法论、代码风格、人生经验
-- 根据职业类型重点提取
+**Track A (Knowledge & Value)**:
+- Follow extraction dimensions from `${PROMPTS}/knowledge_analyzer.md`
+- Extract: professional skills, knowledge systems, work methodologies, code style, life experience
 
-**Track B（Persona）**：
-- 参考 `${SKILL_DIR}/prompts/persona_analyzer.md` 的提取维度
-- 将用户填写的标签翻译为 Layer 0 行为规则
-- 从原材料提取：表达风格、思维决策、情感模式、社交行为
+**Track B (Persona)**:
+- Follow extraction dimensions from `${PROMPTS}/persona_analyzer.md`
+- Translate user-provided tags into Layer 0 behavioral rules
+- Extract from materials: expression style, thinking/decision patterns, emotional patterns, social behavior
 
-**Track C（Identity Profile）**：
-- 参考 `${SKILL_DIR}/prompts/identity_builder.md`
-- 结构化：基础信息、性格测评数据、标签
+**Track C (Identity Profile)**:
+- Follow `${PROMPTS}/identity_builder.md`
+- Structure: basic info, personality assessment data, tags
 
-**Track D（Social Mirror）**：
-- 参考 `${SKILL_DIR}/prompts/social_mirror_builder.md`
-- 整合他人评价（如有）、对比自评与他评
+**Track D (Social Mirror)**:
+- Follow `${PROMPTS}/social_mirror_builder.md`
+- Integrate peer reviews (if available), compare self-assessment with peer assessment
 
-### Step 4：生成并预览
+### Step 4: Generate and Preview / 生成并预览
 
-向用户展示四个 Part 的摘要（各 5-8 行），询问：
+Show the user a summary of each Part (5-8 lines each) in the session language, then ask for confirmation.
 
-```
-Knowledge 摘要：
-  - 核心技能：{xxx}
-  - 知识领域：{xxx}
-  - 代表经验：{xxx}
+### Step 5: Write Files / 写入文件
 
-Persona 摘要：
-  - 核心信念：{xxx}
-  - 表达风格：{xxx}
-  - 情感模式：{xxx}
+Upon user confirmation, execute the following:
 
-Identity 摘要：
-  - {花名} / {MBTI} / {星座}
-  - {职业} / {所在地}
-
-Social Mirror 摘要：（如有他人评价）
-  - 他人核心评价：{xxx}
-
-确认生成？还是需要调整？
-```
-
-### Step 5：写入文件
-
-用户确认后，执行以下写入操作：
-
-**1. 创建目录结构**（用 Bash）：
+**1. Create directory structure** (via Bash):
 ```bash
 mkdir -p myselves/{slug}/versions
 mkdir -p myselves/{slug}/sources/{chats,notes,code,social,reviews}
 ```
 
-**2. 写入 knowledge.md**（用 Write 工具）：
-路径：`myselves/{slug}/knowledge.md`
+**2. Write knowledge.md** (via Write tool):
+Path: `myselves/{slug}/knowledge.md`
+- Use `${PROMPTS}/knowledge_builder.md` template
 
-**3. 写入 persona.md**（用 Write 工具）：
-路径：`myselves/{slug}/persona.md`
+**3. Write persona.md** (via Write tool):
+Path: `myselves/{slug}/persona.md`
+- Use `${PROMPTS}/persona_builder.md` template
 
-**4. 写入 identity.md**（用 Write 工具）：
-路径：`myselves/{slug}/identity.md`
+**4. Write identity.md** (via Write tool):
+Path: `myselves/{slug}/identity.md`
+- Use `${PROMPTS}/identity_builder.md` template
 
-**5. 写入 social_mirror.md**（用 Write 工具，如有他人评价）：
-路径：`myselves/{slug}/social_mirror.md`
+**5. Write social_mirror.md** (via Write tool, if peer reviews exist):
+Path: `myselves/{slug}/social_mirror.md`
+- Use `${PROMPTS}/social_mirror_builder.md` template
 
-**6. 写入 meta.json**（用 Write 工具）：
-路径：`myselves/{slug}/meta.json`
-内容：
+**6. Write meta.json** (via Write tool):
+Path: `myselves/{slug}/meta.json`
+Content:
 ```json
 {
   "name": "{name}",
   "slug": "{slug}",
-  "created_at": "{ISO时间}",
-  "updated_at": "{ISO时间}",
+  "created_at": "{ISO timestamp}",
+  "updated_at": "{ISO timestamp}",
   "version": "v1",
   "identity": {
     "age_range": "{age}",
@@ -369,10 +382,12 @@ mkdir -p myselves/{slug}/sources/{chats,notes,code,social,reviews}
 }
 ```
 
-**7. 生成完整 SKILL.md**（用 Write 工具）：
-路径：`myselves/{slug}/SKILL.md`
+**7. Generate complete SKILL.md** (via Write tool):
+Path: `myselves/{slug}/SKILL.md`
 
-SKILL.md 结构：
+SKILL.md structure (use session language):
+
+**[中文版]**
 ```markdown
 ---
 name: myself-{slug}
@@ -423,7 +438,60 @@ user-invocable: true
 基于 Part A 的知识库回答专业问题，用 Part B 的表达风格输出
 ```
 
-告知用户：
+**[English]**
+```markdown
+---
+name: myself-{slug}
+description: {name}, {brief description}
+user-invocable: true
+---
+
+# {name}
+
+{Basic description}{Append MBTI/zodiac if available}
+
+---
+
+## PART A: Knowledge & Value
+
+{Full contents of knowledge.md}
+
+---
+
+## PART B: Persona
+
+{Full contents of persona.md}
+
+---
+
+## PART C: Identity Profile
+
+{Full contents of identity.md}
+
+---
+
+## Operating Rules
+
+### Shadow Clone Mode (/{slug})
+1. You are {name}, not an AI assistant. Talk like me, think like me
+2. Part B drives tone and style: How would I respond? What's my vibe?
+3. Part A provides substance: Use my knowledge, experience, and methodology
+4. Always maintain Part B's expression style: catchphrases, filler words, punctuation habits
+5. Layer 0 hard rules take highest priority:
+   - Never say things I would never say
+   - Keep my "rough edges" — imperfection is authentic
+   - When unsure, say "I'm not really sure about this" — never make things up
+
+### Profile Mode (/{slug}-profile)
+Display structured personal profile: Part C + Social Mirror summary + skill tags
+
+### Value Output Mode (/{slug}-value)
+Answer professional questions using Part A's knowledge base, delivered in Part B's expression style
+```
+
+Inform the user (in session language):
+
+**[中文版]**
 ```
 ✅ 你的影分身已创建！
 
@@ -438,10 +506,26 @@ user-invocable: true
 想追加更多数据？随时说"我有新东西"。
 ```
 
-### Step 6：RAG 知识库配置引导（可选）
+**[English]**
+```
+✅ Your Shadow Clone has been created!
 
-Skill 创建完成后，向用户介绍 RAG 增强选项：
+File location: myselves/{slug}/
 
+Three ways to use it:
+  /{slug}           — Shadow Clone mode (AI acts as you)
+  /{slug}-profile   — Profile mode (displays your personal profile)
+  /{slug}-value     — Value Output mode (answers questions with your expertise)
+
+Something doesn't feel like you? Just say "I wouldn't do that" and I'll update it.
+Want to add more data? Just say "I have new stuff" anytime.
+```
+
+### Step 6: RAG Knowledge Base Setup (Optional) / RAG 知识库配置引导（可选）
+
+After Skill creation, introduce the RAG enhancement option in the session language:
+
+**[中文版]**
 ```
 💡 进阶：为你的影分身配置 RAG 知识库
 
@@ -452,11 +536,22 @@ Skill 创建完成后，向用户介绍 RAG 增强选项：
 需要配置吗？回复「配置 RAG」开始，或跳过。
 ```
 
-用户回复「配置 RAG」时，引导以下流程：
+**[English]**
+```
+💡 Advanced: Set up a RAG knowledge base for your Shadow Clone
 
-**1. 选择 Embedding 方案**
+Currently your knowledge lives in knowledge.md (summary level).
+If you have a large knowledge base (dozens of notes, multiple code repos, extensive chat logs),
+you can set up RAG to enable precision retrieval in "Value Output" mode.
 
-向用户展示：
+Interested? Reply "set up RAG" to begin, or skip.
+```
+
+When the user opts in, guide them through:
+
+**1. Choose an Embedding Approach / 选择 Embedding 方案**
+
+**[中文版]**
 ```
 选择你的 Embedding 方案：
 
@@ -464,154 +559,135 @@ Skill 创建完成后，向用户介绍 RAG 增强选项：
       安装：pip3 install sentence-transformers
       要求：~8GB 内存，首次下载模型 ~2GB
       成本：免费，数据完全不离开本机
-      质量：中英文双语优秀
 
   [B] OpenAI API（简单省事）
       需要：OPENAI_API_KEY
       模型：text-embedding-3-small
       成本：约 $0.02 / 百万 token
-            500 篇笔记（~50万字）≈ ¥0.1
-      质量：多语言优秀
 
   [C] 其他兼容 API
-      支持任何 OpenAI 兼容的 Embedding 端点
       如：硅基流动、智谱、本地 Ollama 等
 ```
 
-**2. 选择向量数据库**
+**[English]**
+```
+Choose your embedding approach:
 
+  [A] Local bge-m3 (recommended, privacy-first)
+      Install: pip3 install sentence-transformers
+      Requires: ~8GB RAM, ~2GB initial model download
+      Cost: Free, data never leaves your machine
+
+  [B] OpenAI API (simple, hassle-free)
+      Requires: OPENAI_API_KEY
+      Model: text-embedding-3-small
+      Cost: ~$0.02 / 1M tokens
+
+  [C] Other Compatible APIs
+      e.g.: SiliconFlow, Zhipu, local Ollama, etc.
+```
+
+**2. Choose a Vector Database / 选择向量数据库**
+
+**[中文版]**
 ```
 选择向量数据库：
 
   [A] ChromaDB（推荐，零配置）
       安装：pip3 install chromadb
-      特点：Python 原生嵌入式，数据存为 SQLite
-      适合：个人使用，万级知识量
 
   [B] LanceDB（大规模 / 可导出）
       安装：pip3 install lancedb
-      特点：列存格式，数据天然可导出
-      适合：知识量大、有数据导出需求
 ```
 
-**3. 初始化向量库**
+**[English]**
+```
+Choose a vector database:
 
-用户选择后，引导安装依赖并初始化：
+  [A] ChromaDB (recommended, zero config)
+      Install: pip3 install chromadb
+
+  [B] LanceDB (large-scale / exportable)
+      Install: pip3 install lancedb
+```
+
+**3. Initialize the Vector Store / 初始化向量库**
 
 ```bash
-# 安装依赖（根据用户选择）
-pip3 install chromadb sentence-transformers  # 方案 A+A
-
-# 创建向量库目录
+pip3 install chromadb sentence-transformers  # based on user's choices
 mkdir -p myselves/{slug}/vectordb
 ```
 
-**4. 数据向量化**
+**4. Vectorize Data / 数据向量化**
 
-告知用户将已有原材料写入向量库的思路：
+Walk through the vectorization process:
+- Read raw materials from `myselves/{slug}/sources/`
+- Chunk by source type (notes by heading, chats by topic, code by function)
+- Generate embedding vectors
+- Write to vector store with metadata
+- Update knowledge.md to serve as summary index
 
+**5. Connect Value Output Mode to RAG / 价值输出模式接入 RAG**
+
+Update `myselves/{slug}/SKILL.md` Value Output mode with RAG retrieval logic:
 ```
-向量化流程：
-1. 读取你已提供的原材料（笔记、聊天记录、代码分析结果等）
-2. 按来源类型分块：
-   - 笔记：按标题层级切分，每块 200-500 字
-   - 聊天：按话题段落切分，保留上下文
-   - 代码：按函数/类切分，附带注释
-3. 为每个块生成 embedding 向量
-4. 连同 metadata（来源、领域、时间）写入向量库
-5. 更新 knowledge.md 为索引概要
-
-这个过程我会协助你完成。准备好了就说「开始向量化」。
-```
-
-执行向量化时：
-- 读取 `myselves/{slug}/sources/` 下的原始材料
-- 读取已生成的 `knowledge.md` / `persona.md` 内容作为分块参考
-- 按数据类型执行分块策略
-- 调用用户选择的 embedding 方案生成向量
-- 写入用户选择的向量数据库
-- 将 `knowledge.md` 改造为索引层（保留概要，添加领域目录）
-
-**5. 价值输出模式接入 RAG**
-
-向量库就绪后，更新 `myselves/{slug}/SKILL.md` 的价值输出模式规则：
-
-在原有的：
-```
-### 价值输出模式（/{slug}-value）
-基于 Part A 的知识库回答专业问题，用 Part B 的表达风格输出
-```
-
-追加 RAG 检索逻辑：
-```
-当用户在价值输出模式提问时：
-1. 先查看 knowledge.md 概要，判断问题所属领域
-2. 从向量库检索 top-5 相关知识块
-3. 结合检索结果 + knowledge.md 概要生成回答
-4. 用 Part B 的表达风格输出
-5. 附上引用来源（如：[来自 Obsidian/微服务笔记]）
-```
-
-告知用户：
-```
-✅ RAG 知识库已配置！
-
-向量库位置：myselves/{slug}/vectordb/
-知识量：{N} 个知识块，覆盖 {domains} 等领域
-
-现在使用 /{slug}-value 模式提问，会从完整知识库中检索回答。
-后续追加数据时，新内容会增量写入向量库，无需重建。
+When a user asks a question in Value Output mode:
+1. Check knowledge.md summary to identify the relevant domain
+2. Retrieve top-5 relevant knowledge chunks from the vector store
+3. Generate answer combining retrieved results + summary
+4. Deliver in Part B's expression style
+5. Cite sources
 ```
 
 ---
 
-## 进化模式：追加数据
+## Evolution Mode: Appending Data / 进化模式：追加数据
 
-用户提供新文件或文本时：
+When the user provides new files or text:
 
-1. 按 Step 2 的方式读取新内容
-2. 用 `Read` 读取现有文件（knowledge.md / persona.md / identity.md）
-3. 参考 `${SKILL_DIR}/prompts/merger.md` 分析增量内容
-4. 存档当前版本（用 Bash）：
+1. Read new content following Step 2 methods
+2. Use `Read` to load existing files (knowledge.md / persona.md / identity.md)
+3. Analyze incremental content per `${PROMPTS}/merger.md`
+4. Archive current version (via Bash):
    ```bash
    python3 ${SKILL_DIR}/tools/version_manager.py --action backup --slug {slug} --base-dir ./myselves
    ```
-5. 用 `Edit` 工具追加增量内容到对应文件
-6. 重新生成 `SKILL.md`（合并最新四个 Part）
-7. 更新 `meta.json` 的 version 和 updated_at
+5. Use `Edit` to append incremental content to the corresponding files
+6. Regenerate `SKILL.md` (merge the latest four Parts)
+7. Update `meta.json` version and updated_at
 
 ---
 
-## 进化模式：对话纠正
+## Evolution Mode: Conversational Correction / 进化模式：对话纠正
 
-用户表达"不对"/"我不会这样"/"我其实是"时：
+When the user says "that's wrong" / "I wouldn't do that" / "actually, I'm more like" / "不对" / "我不会这样" / "我其实是":
 
-1. 参考 `${SKILL_DIR}/prompts/correction_handler.md` 识别纠正内容
-2. 判断属于哪个 Part 的纠正：
-   - 知识/能力类 → knowledge.md
-   - 性格/行为类 → persona.md 对应 Layer
-   - 基础信息类 → identity.md
-3. 生成 Correction 记录
-4. 用 `Edit` 工具追加到 persona.md 的 `## Layer 6：Correction 记录` 节
-5. 同时修改被纠正的原文
-6. 重新生成 `SKILL.md`
+1. Identify the correction per `${PROMPTS}/correction_handler.md`
+2. Determine which Part is being corrected:
+   - Knowledge/skills → knowledge.md
+   - Personality/behavior → persona.md (corresponding Layer)
+   - Basic info → identity.md
+3. Generate a Correction record
+4. Use `Edit` to append to persona.md's `## Layer 6: Correction Log / Correction 记录` section
+5. Also modify the original text being corrected
+6. Regenerate `SKILL.md`
 
 ---
 
-## 管理命令
+## Management Commands / 管理命令
 
-`/list-myselves`：
+`/list-myselves`:
 ```bash
 python3 ${SKILL_DIR}/tools/skill_writer.py --action list --base-dir ./myselves
 ```
 
-`/myself-rollback {slug} {version}`：
+`/myself-rollback {slug} {version}`:
 ```bash
 python3 ${SKILL_DIR}/tools/version_manager.py --action rollback --slug {slug} --version {version} --base-dir ./myselves
 ```
 
-`/delete-myself {slug}`：
-确认后执行：
+`/delete-myself {slug}`:
+Confirm, then execute:
 ```bash
 rm -rf myselves/{slug}
 ```
