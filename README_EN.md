@@ -26,7 +26,7 @@ and they certainly shouldn't be free fodder for platforms to harvest and resell.
 Your tech intuition, code style, and methodology — packaged as a reusable digital asset.<br>
 Your clone handles code reviews, doc generation, and flags blind spots via Issues — a self-investment flywheel that grows stronger with use.
 
-🏢 **For Teams · On-Demand Expertise**<br>
+🏢 **For Companies · Elastic Expert Capacity**<br>
 No need to expand headcount during peak demand — subscribe to expert Shadow Clones at low cost.<br>
 Voluntary authorization, full transparency, no outsourcing quality roulette or data breach risks.
 
