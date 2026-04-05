@@ -18,7 +18,7 @@
 <br>
 
 提供你的原材料（聊天记录、笔记、代码、简历）加上你的自我描述<br>
-生成一个**能替你工作、能被他人了解、能上链交易**的个人 AI Skill
+生成一个**能替你工作、能被他人了解**的个人 AI Skill
 
 [数据来源](#支持的数据来源) · [安装](#安装) · [使用](#使用) · [效果示例](#效果示例) · [English](README_EN.md)
 
@@ -180,6 +180,38 @@ myself.skill ❯ 👤 Ding
 
 **性格框架**：MBTI 16型 · 星座 12宫 · 生肖 12属 · 九型人格 · 依恋类型 · 爱的语言
 
+### RAG 与个人知识图谱
+
+当个人知识库规模增长（几百篇笔记、几千个代码文件、多年聊天记录），单个 Markdown 文件无法满足语义检索需求。myself.skill 采用 **RAG（Retrieval-Augmented Generation）+ 向量数据库** 构建个人知识技能图谱：
+
+**双层架构**：
+
+```
+knowledge.md（概要层）  ←  影分身/档案模式调用，控制在 5KB 以内
+       │ 索引指向
+       ▼
+Vector DB（深度层）     ←  价值输出模式精准检索，万级～十万级 atoms
+```
+
+- `knowledge.md` 作为**知识索引**，提供快速概要（适合塞进 LLM 上下文）
+- 向量数据库存储完整的深度知识，供价值输出模式做**语义检索**
+
+**Knowledge Atom — 最小检索单元**：
+
+不同于传统 RAG 按段落切分，myself.skill 设计了 Knowledge Atom 结构，每个 atom 是一个自包含的知识片段，携带丰富的 metadata（来源、领域、置信度、时效性、隐私级别），支持精准过滤与溯源。
+
+**多路检索管线**：
+
+| 检索路径 | 方式 | 作用 |
+|---------|------|------|
+| 向量语义检索 | query embedding → top-K | 语义相似度匹配 |
+| 关键词/BM25 检索 | 全文匹配 | 补充向量检索盲区 |
+| Metadata 过滤 | 按领域、隐私级别、时效性过滤 | 精准定位 |
+
+**Embedding 方案**：优先本地运行（隐私优先），推荐 `bge-m3`（中英文双语，支持稀疏+稠密混合检索）。向量数据库选用 ChromaDB（MVP）→ LanceDB（生产阶段）。
+
+**增量更新**：追加新数据时无需重建整个向量库，仅处理新增/变更的 chunks，保留已有 atoms 和 embeddings。
+
 ### 进化机制
 
 - **追加数据** → 自动分析增量 → merge 进对应部分，不覆盖已有结论
@@ -218,22 +250,12 @@ create-myself/
 │   └── peer_review_form.md    #   他人评价问卷模板
 ├── docs/PRD.md                #   产品需求文档
 ├── myselves/                  #   生成的个人 Skill（gitignored）
+│   └── {slug}/
+│       ├── vectordb/          #   向量数据库（Knowledge Atoms 存储）
+│       └── ...
 ├── requirements.txt
 └── LICENSE
 ```
-
----
-
-## 与 colleague-skill / ex-skill 的对比
-
-| 维度 | 同事.skill | 前任.skill | **myself.skill** |
-|------|-----------|-----------|-----------------|
-| 蒸馏谁 | 别人（同事） | 别人（前任） | **自己** |
-| Part A | Work Skill | Relationship Memory | **Knowledge & Value** |
-| Part B | Persona（5层） | Persona（5层） | **Persona（7层）** |
-| 独有层 | — | — | **Identity + Social Mirror** |
-| 运行模式 | 模拟同事 | 模拟前任 | **影分身 / 档案 / 价值输出** |
-| 数据源 | 飞书/钉钉 | 微信/QQ | **全平台** |
 
 ---
 
