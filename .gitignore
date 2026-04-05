@@ -1,0 +1,20 @@
+# 生成的个人 Skill（包含隐私数据）
+myselves/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# 原始数据备份
+*.bak

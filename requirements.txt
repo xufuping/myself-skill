@@ -1,0 +1,15 @@
+# myself.skill Python 依赖
+# 核心工具无额外依赖，仅用 Python 标准库
+# 以下为可选依赖，用于增强功能
+
+# 聊天记录解析增强（可选）
+# chardet>=5.0       # 编码检测
+# openpyxl>=3.1      # Excel 解析
+
+# GitHub 分析增强（可选）
+# gitpython>=3.1     # Git 仓库高级分析
+
+# RAG / 向量化（Phase 3，可选）
+# chromadb>=0.4      # 向量数据库
+# sentence-transformers>=2.2  # Embedding 模型
+# langchain>=0.1     # RAG 框架
